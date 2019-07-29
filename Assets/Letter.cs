@@ -12,6 +12,8 @@ public class Letter : MonoBehaviour
     GameObject mainCamera;
     Transform[] letters;
     public Vector3 target;
+    AudioClip[] storyClips;
+    AudioSource audioSource;
     Game game;
     Text guiText;
 
@@ -20,16 +22,23 @@ public class Letter : MonoBehaviour
         isStatic = true;
         mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
         game = mainCamera.GetComponent<Game>();
+        audioSource = mainCamera.GetComponent<AudioSource>();
+        storyClips = game.storyClips;
         letters = game.letters;
         guiText = GetComponent<Text>();
     }
 
     public void OnClick()
-    {
-        Debug.Log("sss");
+    {        
         if (text.Equals(mainCamera.GetComponent<Game>().letter))
         {
-            if (isStatic) {
+            //Случай если нажата правильная буква
+            if (isStatic && !game.isAnimated) {
+                GetComponent<AudioSource>().Play();
+                game.points++;
+                game.tries = 0;
+                audioSource.clip = game.points != 6 ? storyClips[3] : storyClips[6];
+                audioSource.PlayDelayed(1);
                 StopAllCoroutines();
                 StartCoroutine(MoveLetter(lastPlace));
                 StartCoroutine(ChangeLetterColor(Color.red));
@@ -38,6 +47,10 @@ public class Letter : MonoBehaviour
         else
         {
             //Случай если нажата неправильная буква
+            game.points = 0;
+            audioSource.clip = storyClips[game.tries % 3];
+            game.tries ++;
+            audioSource.Play();
             StartCoroutine(game.Wrong(this));
         }
             
@@ -65,13 +78,11 @@ public class Letter : MonoBehaviour
         while (guiText.color != color)
         {
             guiText.color = Color.Lerp(guiText.color, color, Time.deltaTime);
-            Debug.Log("Color Changing to " + color.ToString());
             yield return null;
         }
-        Debug.Log("Color changed - "+ color.ToString());
     }
 
-    public IEnumerator Blink()
+    public IEnumerator Blink()// Моргание буквы
     {
         for (int i = 0; i < 5; i++)
         {
